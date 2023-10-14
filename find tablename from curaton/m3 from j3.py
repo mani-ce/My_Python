@@ -11,19 +11,20 @@ def search_for_file_path ():
     currdir =r'E:/Leoaws/LEO%20AWS%20Migration/Curation/curation_procedure_order/'
     # tempdir = filedialog.askdirectory(parent=root, initialdir=currdir, title='Please select a directory')
     tempdir = filedialog.askopenfilename(parent=root, initialdir=currdir, title='Please select a directory')
-    if len(tempdir) > 0:
+    if tempdir:
         print ("You chose: %s" % tempdir)
     return tempdir
 
 # Compile regular expressions
 TEMP_TABLE_RE = re.compile(r'CREATE\s+OR\s+REPLACE\s+TEMP(?:ORARY)?\s+TABLE\s+(\S+)\s+AS', re.I)
-DROP_TABLE_RE = re.compile(r'(L1\.|L2\.|L3\.|QC\.|MDM\.|NPA_REF\.|ETL\.|MDM_L1\.|INFORMATION_SCHEMA\.)\s*(\w+)', re.I)
-TABLE_RE = re.compile(r"(L1\.|L2\.|L3\.|QC\.|MDM\.|NPA_REF\.|ETL\.|MDM_L1\.|INFORMATION_SCHEMA\.)\s*(\w+)", re.I)
-# TABLE_RE = re.compile(r'^L1\.(?:\w+)(?:\.(?:\w+))*$', re.I)
-# TABLE_RE = re.compile(r"^(L1|L2|L3)\.(.+)$", re.I)
-# TABLE_RE = re.compile(r"^(L1|L2|L3)\.\s*(\w+)", re.I)
-# TABLE_RE=re.compile(r"\b(L1.|L2\.|L3\.|QC\.|MDM\.|NPA_REF\.|ETL\.|MDM_L1\.|INFORMATION_SCHEMA\.)\w+", re.I)
-TABLE_RE_WITH_DOT = re.compile(r'"(L1|L2|L3|QC|MDM|NPA_REF|ETL|MDM_L1|INFORMATION_SCHEMA)"\."(\w+)"', re.I)
+# DROP_TABLE_RE = re.compile(r'(L1\.|L2\.|L3\.|QC\.|MDM\.|NPA_REF\.|ETL\.|MDM_L1\.|INFORMATION_SCHEMA\.)\s*(\w+)', re.I)
+# TABLE_RE = re.compile(r"(L1\.|L2\.|L3\.|QC\.|MDM\.|NPA_REF\.|ETL\.|MDM_L1\.|INFORMATION_SCHEMA\.)\s*(\w+)", re.I)
+# TABLE_RE_WITH_DOT = re.compile(r'"(L1|L2|L3|QC|MDM|NPA_REF|ETL|MDM_L1|INFORMATION_SCHEMA)"\."(\w+)"', re.I)
+
+DROP_TABLE_RE = re.compile(r'(L[123]\.|QC\.|MDM\.|NPA_REF\.|ETL\.|MDM_L1\.|INFORMATION_SCHEMA\.)\s*(\w+)', re.I)
+TABLE_RE = re.compile(r'(L[123]\.|QC\.|MDM\.|NPA_REF\.|ETL\.|MDM_L1\.|INFORMATION_SCHEMA\.)\s*(\w+)', re.I)
+TABLE_RE_WITH_DOT = re.compile(r'"(L[123]|QC|MDM|NPA_REF|ETL|MDM_L1|INFORMATION_SCHEMA)"\."(\w+)"', re.I)
+
 # Create empty sets to store the matches
 matches = set()
 matches2 = set()
@@ -40,23 +41,33 @@ with open("{}".format(file_path_variable))as f:
             # print(mp)
             pass
         else:
-            # all_sql_content=''
             with open(file_path_variable[:41]+mp.strip('\n'), "r") as source_file:
                 # Format the sql statement                
                 sql_content_format=sqlparse.format(source_file, reindent=True, strip_comments=True , keyword_case='upper')                
                 all_sql_content+=sql_content_format
                 # print(all_sql_content)
 
-lines=all_sql_content.splitlines()
-for line in lines:
-    # Match TEMP TABLE
-    temp_matches.update(TEMP_TABLE_RE.findall(line))            
-    # Match DROP TABLE
-    drop_matches.update(DROP_TABLE_RE.findall(line))            
-    # Match TABLE
-    matches.update(TABLE_RE.findall(line))           
-    # Match TABLE with dot
-    matches2.update(TABLE_RE_WITH_DOT.findall(line))
+# lines=all_sql_content.splitlines()
+# for line in lines:
+#     # Match TEMP TABLE
+#     temp_matches.update(TEMP_TABLE_RE.findall(line))            
+#     # Match DROP TABLE
+#     drop_matches.update(DROP_TABLE_RE.findall(line))            
+#     # Match TABLE
+#     matches.update(TABLE_RE.findall(line))           
+#     # Match TABLE with dot
+#     matches2.update(TABLE_RE_WITH_DOT.findall(line))
+
+# lines=all_sql_content.splitlines()
+# for line in lines:
+# Match TEMP TABLE
+temp_matches.update(TEMP_TABLE_RE.findall(all_sql_content))            
+# Match DROP TABLE
+drop_matches.update(DROP_TABLE_RE.findall(all_sql_content))            
+# Match TABLE
+matches.update(TABLE_RE.findall(all_sql_content))           
+# Match TABLE with dot
+matches2.update(TABLE_RE_WITH_DOT.findall(all_sql_content))
     
 # Convert the matches to sets
 matches = set(f"{match[0]}{match[1]}" for match in matches)
