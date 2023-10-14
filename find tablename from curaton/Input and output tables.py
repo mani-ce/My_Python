@@ -1,126 +1,115 @@
 import re
-import pandas as pd
 import tkinter
 from tkinter import filedialog
 import sqlparse
 
-def get_file_paths():
-  root = tkinter.Tk()
-  root.withdraw()
-
-  file_path_variable = filedialog.askopenfilename(parent=root, title='Please select a directory')
-
-  file_paths = []
-  with open(file_path_variable, 'r') as f:
-    for line in f:
-      line = line.strip()
-      if 'run_first.sql' not in line:
-        file_paths.append(line[11:])
-  return file_paths
-
-matches1 = set()
-matches2 = set()
-CREATE_TEMP = set()
+# Create empty sets to store the matches
+matches = set()
+matches_dot = set()
+create_temp = set()
 crt=set()
-drop_matches=set()
+drp=set()
 trc=set()
 inc=set()
 det=set()
 upd=set()
-lst=get_file_paths()
-def parse_sql_queries(sql_text):
-  parsed_queries = []
-  statements = sqlparse.split(sql_text)
-  for statement in statements:
-    parsed_queries.append(sqlparse.format(statement, reindent=True,strip_comments=True,keyword_case='upper'))
-  return parsed_queries
+unwant_matches = {'L1','L2','L3'}
 
-for ii in lst:
-    # file_path=r'E:/Leoawsran/LEO%20RAP3iD%20Implementation%20%28Infra-CDW-MDM%29/leo_prefect/'+ii
-    file_path=r'E:/Leoaws/LEO%20AWS%20Migration/Curation/procedures/'+ii
-    # print(file_path)
+# Compile regular expressions
+create_temp_re=re.compile(r'CREATE\s+OR\s+REPLACE\s+TEMP(?:ORARY)?\s+TABLE\s+(\S+)\s',re.I)
+crt_re=re.compile(r'CREATE(?:\s+OR\s+REPLACE)?\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(\w+\.\w+)\s+',re.I)
+drp_re=re.compile(r'DROP\s+TABLE\s+(\S+);',re.I)
+trc_re=re.compile(r'TRUNCATE\s+(?:TABLE\s+)?(\S+);',re.I)
+inc_re=re.compile(r'INSERT\s+INTO\s+(\S+)',re.I)
+det_re=re.compile(r'DELETE\s+FROM\s+(\S+)',re.I)
+upd_re=re.compile(r'UPDATE\s+(\S+)\s',re.I)
+matches_re= re.compile(r'(L[123]\.|QC\.|MDM\.|NPA_REF\.|ETL\.|MDM_L1\.|INFORMATION_SCHEMA\.)\s*(\w+)', re.I)
+matches_dot_re=re.compile(r'"(L[123]|QC|MDM|NPA_REF|ETL|MDM_L1|INFORMATION_SCHEMA)"\."(\w+)"', re.I)
 
-# file_path =r"E:/Leoawsran/LEO%20RAP3iD%20Implementation%20%28Infra-CDW-MDM%29/leo_prefect/Development/aggregator_procedures/Copay_SP_HUB/L3_SP_HUB_Base.sql" # Replace with the actual file path
-    with open(file_path, "r") as file:
-        lines = file.readlines()
-    
-    # frm=set()
-    for lineby in lines:
-        # print(lineby)
-        # print('mani')
+def search_for_file_path ():
+    root = tkinter.Tk()
+    root.withdraw() #use to hide tkinter window
+    # currdir = os.getcwd()
+    currdir =r'E:/Leoaws/LEO%20AWS%20Migration/Curation/curation_procedure_order/'
+    # tempdir = filedialog.askdirectory(parent=root, initialdir=currdir, title='Please select a directory')
+    tempdir = filedialog.askopenfilename(parent=root, initialdir=currdir, title='Please select a directory')
+    if tempdir:
+        print ("You chose: %s" % tempdir)
+    return tempdir
 
-        line = lineby.strip().upper()#here strip removed '\n'
+file_path_variable=search_for_file_path()
+all_sql_content=''
+with open("{}".format(file_path_variable))as f:
+    for mp in f:
+        # print(mp)
+        if 'run_first.sql' not in mp:
+            # print(mp)
+            with open(file_path_variable[:41]+mp.rstrip(), "r") as source_file:
+                # Format the sql statement                
+                sql_content_format=sqlparse.format(source_file, reindent=True, strip_comments=True , keyword_case='upper')                
+                all_sql_content+=sql_content_format
+                # print(all_sql_content)
+
+# with open("myfile.txt", "w") as file1:
+#     file1.writelines(all_sql_content)
+
+lines=all_sql_content.splitlines()   
+for line in lines:
+    # print(lineby)
+    # line = lineby.strip().upper()#here strip removed '\n'
+    # print(line)
+    if "TEMP" in line and "TEMP_" not in line:
+        create_temp.update(create_temp_re.findall(line))
+    elif "CREATE " in line:
         # print(line)
-        if not (line.startswith("--") or line.startswith("---") or line.startswith("//")):#j4.1 updated
-            # print(line)
-            if "TEMP" in line and "TEMP_" not in line:
-                # print(line)
-                CREATE_TEMP.update(re.findall(r'CREATE\s+OR\s+REPLACE\s+TEMP(?:ORARY)?\s+TABLE\s+(\S+)\s', line))
-            elif "CREATE " in line:
-                crt.update(re.findall(r'CREATE(?:\s+OR\s+REPLACE)?\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(\w+\.\w+)\s+', line))
-            elif "DROP " in line:
-                # print(line)
-                drop_matches.update(re.findall(r'DROP\s+TABLE\s+(\S+);', line))
-            elif "TRUNCATE " in line:
-                # print(line)
-                trc.update(re.findall(r'TRUNCATE\s+(?:TABLE\s+)?(\S+);', line))
-            elif "INSERT " in line:
-                # print(line)
-                inc.update(re.findall(r'INSERT\s+INTO\s+(\S+)', line))
-            elif "DELETE " in line:
-                # print(line)
-                det.update(re.findall(r'DELETE\s+FROM\s+(\S+)', line))
-            elif "UPDATE " in line:
-                # print(line)
-                upd.update(re.findall(r'UPDATE\s+(\S+)\s', line))
-            # elif "FROM " in line:
-            #     # print(line)
-            #     frm.update(re.findall(r'(L1.|L2\.|L3\.|QC\.|MDM\.|NPA_REF\.|ETL\.|MDM_L1\.|INFORMATION_SCHEMA\.)\s*(\w+)', line))
-            else:
-                # print(line)
-                matches1.update(re.findall(r'(L1\.|L2\.|L3\.|QC\.|MDM\.|NPA_REF\.|ETL\.|MDM_L1\.|INFORMATION_SCHEMA\.)\s*(\w+)', line))
-                matches2.update(re.findall(r'"(L1|L2|L3|QC|MDM|NPA_REF|ETL|MDM_L1|INFORMATION_SCHEMA)"\."(\w+)"', line))
+        crt.update(crt_re.findall(line))
+    elif "DROP " in line:
+        drp.update(drp_re.findall(line))
+    elif "TRUNCATE " in line:
+        trc.update(trc_re.findall(line))
+    elif "INSERT " in line:
+        inc.update(inc_re.findall(line))
+    elif "DELETE " in line:
+        det.update(det_re.findall(line))
+    elif "UPDATE " in line:
+        upd.update(upd_re.findall(line))
+    # elif "FROM " in line:
+    #     # print(line)
+    #     frm.update(re.findall(r'(L1.|L2\.|L3\.|QC\.|MDM\.|NPA_REF\.|ETL\.|MDM_L1\.|INFORMATION_SCHEMA\.)\s*(\w+)', line))
+    else:
+        # print(line)
+        matches.update(matches_re.findall(line))
+        matches_dot.update(matches_dot_re.findall(line))
+        # matches.update(re.findall(r'(L1\.|L2\.|L3\.|QC\.|MDM\.|NPA_REF\.|ETL\.|MDM_L1\.|INFORMATION_SCHEMA\.)\s*(\w+)', line))
+        # matches_dot.update(re.findall(r'"(L1|L2|L3|QC|MDM|NPA_REF|ETL|MDM_L1|INFORMATION_SCHEMA)"\."(\w+)"', line))
 
     # print(matches1)
     # print(matches2)
     # Two values change into one set of values in matches
-matches1 = set(f"{match[0]}{match[1]}" for match in matches1)
+matches = set(f"{match[0]}{match[1]}" for match in matches)
     # Add a dot after L1, L2, L3 in matches2
-matches2 = set(f"{match[0]}.{match[1]}" for match in matches2)
+matches_dot = set(f"{match[0]}.{match[1]}" for match in matches_dot)
     # print(matches1)
     # print(matches2)
-    # trunc_1= set(f"{match[0]}.{match[1]}" for trc in trunc_1)
-    # insert_1 = set(f"{match[0]}.{match[1]}" for inc in insert_1)
     
-input_matches = matches1.union(matches2)
-
+input_matches = matches.union(matches_dot)
    
 trunc_1 = {item.replace('"', '') for item in trc}
-insert_1 = {item.replace('"', '') for item in inc}
-    
+insert_1 = {item.replace('"', '') for item in inc}    
 
 output_matches=insert_1.union(trunc_1)
 output_matches=output_matches.union(crt)
-
-    # CREATE_TEMP=CREATE_TEMP.union(trc)
-    # CREATE_TEMP=CREATE_TEMP.union(inc)
-    # CREATE_TEMP=CREATE_TEMP.union(det)
-    # CREATE_TEMP=CREATE_TEMP.union(upd)
-
-    # merged_matches = merged_matches.difference(temp_matches)# TEMPORARY key work capture two table but one table valid another nor valid(ex:-L2.TIMEPERIOD_BOUNDARIES(valid),L2.TIMEPERIOD_BOUNDARIES_SOB it's temp table)
-output_matches = output_matches.difference(CREATE_TEMP)
+# merged_matches = merged_matches.difference(temp_matches)# TEMPORARY key work capture two table but one table valid another nor valid(ex:-L2.TIMEPERIOD_BOUNDARIES(valid),L2.TIMEPERIOD_BOUNDARIES_SOB it's temp table)
+output_matches = output_matches.difference(create_temp)
 update_matches= upd.difference(output_matches)
 delete_matches= det.difference(output_matches)
-
 input_matches=input_matches.union(update_matches)
 input_matches=input_matches.union(delete_matches)
 input_matches=input_matches.difference(output_matches)
-input_matches=input_matches.difference(CREATE_TEMP)#here i remove temp table from input tables
+input_matches=input_matches.difference(create_temp)#here i remove temp table from input tables
 merged_matches1=sorted(input_matches)
 merged_matches2=sorted(output_matches)
 
-
-    # print(r'E:/Leoawsran/LEO%20RAP3iD%20Implementation%20%28Infra-CDW-MDM%29/leo_prefect/'+ii,': ')
 
 if merged_matches1:
     print("Input tables found:")
