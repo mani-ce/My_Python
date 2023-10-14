@@ -35,31 +35,16 @@ drop_matches = set()
 file_path_variable=search_for_file_path()
 all_sql_content=''
 with open("{}".format(file_path_variable))as f:
-    linesby=f.readlines()
-    for mp in linesby:
-        if 'run_first.sql' in mp:
+    for mp in f:
+        # print(mp)
+        if 'run_first.sql' not in mp:
             # print(mp)
-            pass
-        else:
-            with open(file_path_variable[:41]+mp.strip('\n'), "r") as source_file:
+            with open(file_path_variable[:41]+mp.rstrip(), "r") as source_file:
                 # Format the sql statement                
                 sql_content_format=sqlparse.format(source_file, reindent=True, strip_comments=True , keyword_case='upper')                
                 all_sql_content+=sql_content_format
                 # print(all_sql_content)
 
-# lines=all_sql_content.splitlines()
-# for line in lines:
-#     # Match TEMP TABLE
-#     temp_matches.update(TEMP_TABLE_RE.findall(line))            
-#     # Match DROP TABLE
-#     drop_matches.update(DROP_TABLE_RE.findall(line))            
-#     # Match TABLE
-#     matches.update(TABLE_RE.findall(line))           
-#     # Match TABLE with dot
-#     matches2.update(TABLE_RE_WITH_DOT.findall(line))
-
-# lines=all_sql_content.splitlines()
-# for line in lines:
 # Match TEMP TABLE
 temp_matches.update(TEMP_TABLE_RE.findall(all_sql_content))            
 # Match DROP TABLE
