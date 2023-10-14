@@ -45,6 +45,9 @@ with open("{}".format(file_path_variable))as f:
                 all_sql_content+=sql_content_format
                 # print(all_sql_content)
 
+# with open("myfile.txt", "w") as file1:
+#     file1.writelines(all_sql_content)
+
 # Match TEMP TABLE
 temp_matches.update(TEMP_TABLE_RE.findall(all_sql_content))            
 # Match DROP TABLE
