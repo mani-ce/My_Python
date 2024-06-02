@@ -19,9 +19,10 @@ async def async_download_video(link, path, executor):
 async def download_playlist(playlist_link, path):
     playlist = Playlist(playlist_link)
     print(f"Downloading playlist: {playlist.title}")
-    executor = ThreadPoolExecutor(max_workers=10)
+    executor = ThreadPoolExecutor(max_workers=10) # Increased number of workers from 10 to 20 it lead speedup the process
     tasks = [async_download_video(video_url, path, executor) for video_url in playlist.video_urls]
     await asyncio.gather(*tasks)
+    executor.shutdown(wait=True)  # Ensure all threads have completed
     print("All videos in the playlist have been downloaded successfully.")
 
 link = input("Enter the YouTube video or playlist URL: ")
