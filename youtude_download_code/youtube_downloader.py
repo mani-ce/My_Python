@@ -3,6 +3,7 @@ import asyncio
 from pytube import YouTube, Playlist
 from concurrent.futures import ThreadPoolExecutor
 import streamlit as st
+from tkinter import Tk, filedialog
 
 def download_video(link, path, progress_bar):
     youtube_object = YouTube(link, on_progress_callback=lambda stream, chunk, bytes_remaining: progress_bar.progress((1 - bytes_remaining / stream.filesize) * 100))
@@ -20,12 +21,19 @@ async def async_download_video(link, path, executor, progress_bar):
 async def download_playlist(playlist_link, path):
     playlist = Playlist(playlist_link)
     st.write(f"Downloading playlist: {playlist.title}")
-    executor = ThreadPoolExecutor(max_workers=20)
+    executor = ThreadPoolExecutor(max_workers=10)
     progress_bar = st.progress(0)
     tasks = [async_download_video(video_url, path, executor, progress_bar) for video_url in playlist.video_urls]
     await asyncio.gather(*tasks)
     executor.shutdown(wait=True)
     st.write("All videos in the playlist have been downloaded successfully.")
+
+def select_folder():
+    root = Tk()
+    root.withdraw()  # Hide the root window
+    folder_path = filedialog.askdirectory()
+    root.destroy()  # Destroy the root window after selection
+    return folder_path
 
 def main():
     st.set_page_config(page_title="YouTube Downloader", page_icon="🎥", layout="wide")
@@ -37,25 +45,31 @@ def main():
         padding: 20px;
         border-radius: 10px;
     }
+    .input-field {
+        background-color: #e6f7ff;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
     st.markdown("<div class='main'>", unsafe_allow_html=True)
 
-    link = st.text_input("Enter the YouTube video or playlist URL:")
-    os_option = st.selectbox("Select your Operating System:", ["Windows", "Linux", "MacOS"])
-    
-    default_path = ""
-    if os_option == "Windows":
-        default_path = "C:\\Users\\<YourUserName>\\Downloads\\YouTubeDownloads"
-    elif os_option == "Linux":
-        default_path = "/home/<YourUserName>/Downloads/YouTubeDownloads"
-    elif os_option == "MacOS":
-        default_path = "/Users/<YourUserName>/Downloads/YouTubeDownloads"
-    
-    path = st.text_input("Enter the path where files need to be stored:", value=default_path)
-    
+    link = st.text_input("Enter the YouTube video or playlist URL:", key="link", help="Paste the YouTube link here", placeholder="https://www.youtube.com/...")
+
+    if 'path' not in st.session_state:
+        st.session_state['path'] = ""
+
+    if st.button("Browse"):
+        selected_folder = select_folder()
+        if selected_folder:
+            st.session_state['path'] = selected_folder
+
+    st.write(f"Selected Path: {st.session_state['path']}")
+
     if st.button("Download"):
+        path = st.session_state['path']
         if not os.path.exists(path):
             os.makedirs(path)
         
