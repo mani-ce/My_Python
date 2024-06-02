@@ -21,7 +21,7 @@ async def async_download_video(link, path, executor, progress_bar):
 async def download_playlist(playlist_link, path):
     playlist = Playlist(playlist_link)
     st.write(f"Downloading playlist: {playlist.title}")
-    executor = ThreadPoolExecutor(max_workers=10)
+    executor = ThreadPoolExecutor(max_workers=10)#to speedup you can increase  works from 10 to 20
     progress_bar = st.progress(0)
     tasks = [async_download_video(video_url, path, executor, progress_bar) for video_url in playlist.video_urls]
     await asyncio.gather(*tasks)
@@ -68,6 +68,8 @@ def main():
 
     st.write(f"Selected Path: {st.session_state['path']}")
 
+    st.markdown("**Note:** The popup will open after pressing the above button. To find it, press 'Alt+Tab' accordingly.")
+
     if st.button("Download"):
         path = st.session_state['path']
         if not os.path.exists(path):
@@ -80,6 +82,11 @@ def main():
             download_video(link, path, progress_bar)
 
     st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Developer Information
+    st.sidebar.markdown("### Developer Information")
+    st.sidebar.markdown("**Name:** CE MANIVANNAN")
+    st.sidebar.markdown("**Email:** cemanivannan98@gmail.com")
 
 if __name__ == "__main__":
     main()
