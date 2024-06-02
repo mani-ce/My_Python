@@ -1,5 +1,6 @@
-from pytube import YouTube, Playlist
 import os
+from pytube import YouTube, Playlist
+from threading import Thread
 
 def DownloadVideo(link, path):
     youtubeObject = YouTube(link)
@@ -15,8 +16,16 @@ def Download(link, path):
         try:
             playlist = Playlist(link)
             print(f"Downloading playlist: {playlist.title}")
+            threads = []
             for video_url in playlist.video_urls:
-                DownloadVideo(video_url, path)
+                thread = Thread(target=DownloadVideo, args=(video_url, path))
+                threads.append(thread)
+                thread.start()
+            
+            # Wait for all threads to complete
+            for thread in threads:
+                thread.join()
+
             print("All videos in the playlist have been downloaded successfully.")
         except Exception as e:
             print(f"An error occurred with the playlist: {e}")
@@ -28,7 +37,7 @@ def Download(link, path):
 
 link = input("Enter the YouTube video or playlist URL: ")
 # path = input("Enter the path where to store the video(s): ")
-path ="C:\\Users\\vijay\\Downloads\\YouTubePlaylist\\New folder"
+path = "C:\\Users\\vijay\\Downloads\\YouTubePlaylist\\New folder"
 # Ensure the path exists
 if not os.path.exists(path):
     os.makedirs(path)
