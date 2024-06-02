@@ -1,45 +1,36 @@
 import os
+import asyncio
 from pytube import YouTube, Playlist
-from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
 
-def DownloadVideo(link, path):
-    youtubeObject = YouTube(link)
-    youtubeObject = youtubeObject.streams.get_highest_resolution()
+def download_video(link, path):
+    youtube_object = YouTube(link)
+    youtube_object = youtube_object.streams.get_highest_resolution()
     try:
-        youtubeObject.download(output_path=path)
+        youtube_object.download(output_path=path)
         print(f"Download completed successfully: {link}")
     except Exception as e:
         print(f"An error occurred while downloading {link}: {e}")
 
-def Download(link, path):
-    if 'playlist' in link:
-        try:
-            playlist = Playlist(link)
-            print(f"Downloading playlist: {playlist.title}")
-            threads = []
-            for video_url in playlist.video_urls:
-                thread = Thread(target=DownloadVideo, args=(video_url, path))
-                threads.append(thread)
-                thread.start()
-            
-            # Wait for all threads to complete
-            for thread in threads:
-                thread.join()
+async def async_download_video(link, path, executor):
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(executor, download_video, link, path)
 
-            print("All videos in the playlist have been downloaded successfully.")
-        except Exception as e:
-            print(f"An error occurred with the playlist: {e}")
-    else:
-        try:
-            DownloadVideo(link, path)
-        except Exception as e:
-            print(f"An error occurred: {e}")
+async def download_playlist(playlist_link, path):
+    playlist = Playlist(playlist_link)
+    print(f"Downloading playlist: {playlist.title}")
+    executor = ThreadPoolExecutor(max_workers=10)
+    tasks = [async_download_video(video_url, path, executor) for video_url in playlist.video_urls]
+    await asyncio.gather(*tasks)
+    print("All videos in the playlist have been downloaded successfully.")
 
 link = input("Enter the YouTube video or playlist URL: ")
-# path = input("Enter the path where to store the video(s): ")
-path = "C:\\Users\\vijay\\Downloads\\YouTubePlaylist\\New folder"
-# Ensure the path exists
+path = "C:\\Users\\vijay\\Downloads\\YouTubePlaylist\\New folder"# here you can change your local location path to store the files
+
 if not os.path.exists(path):
     os.makedirs(path)
 
-Download(link, path)
+if 'playlist' in link:
+    asyncio.run(download_playlist(link, path))
+else:
+    download_video(link, path)
